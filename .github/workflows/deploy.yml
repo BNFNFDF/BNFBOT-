@@ -1,0 +1,77 @@
+name: Deploy to Heroku
+
+on:
+  workflow_dispatch:
+    inputs:
+      HEROKU_APP_NAME:
+        description: "Heroku App name"
+        required: true
+      HEROKU_API_KEY:
+        description: "Heroku API key"
+        required: true
+      HEROKU_EMAIL:
+        description: "Heroku email address"
+        required: true
+      HEROKU_TEAM_NAME:
+        description: "Heroku Team Name"
+        required: false
+      BOT_TOKEN:
+        description: "Telegram bot token"
+        required: true
+      OWNER_ID:
+        description: "Owner's telegram ID"
+        required: true
+      DATABASE_URL:
+        description: "Database URL from MongoDB"
+        required: true
+      TELEGRAM_API:
+        description: "Telegram API ID from https://my.telegram.org/"
+        required: true
+      TELEGRAM_HASH:
+        description: "Telegram HASH from https://my.telegram.org/"
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout deploy branch
+        uses: actions/checkout@v2
+
+      - name: Delete unnecessary directories and files
+        run: |
+          # Directories to delete
+          for dir in bot qBittorrent web; do
+            if [ -d "./$dir" ]; then
+              echo "Deleting directory: $dir"
+              rm -rf ./$dir
+            else
+              echo "Directory not found: $dir"
+            fi
+          done
+
+          # Delete a2c.conf if it exists
+          if [ -f "./a2c.conf" ]; then
+            echo "Deleting file: a2c.conf"
+            rm -f ./a2c.conf
+          else
+            echo "File not found: a2c.conf"
+          fi
+
+      - name: Deploy to Heroku
+        uses: 5hojib/heroku-deploy-action@v2
+        with:
+          heroku_api_key: ${{inputs.HEROKU_API_KEY}}
+          heroku_app_name: ${{inputs.HEROKU_APP_NAME}}
+          heroku_email: ${{inputs.HEROKU_EMAIL}}
+          team: ${{ inputs.HEROKU_TEAM_NAME != '' && format('{0}', inputs.HEROKU_TEAM_NAME) || '' }}
+          usedocker: true
+          docker_heroku_process_type: web
+          stack: "container"
+          region: "eu"
+        env:
+          HD_OWNER_ID: ${{inputs.OWNER_ID}}
+          HD_TELEGRAM_API: ${{inputs.TELEGRAM_API}}
+          HD_TELEGRAM_HASH: ${{inputs.TELEGRAM_HASH}}
+          HD_DATABASE_URL: ${{inputs.DATABASE_URL}}
+          HD_BOT_TOKEN: ${{inputs.BOT_TOKEN}}
